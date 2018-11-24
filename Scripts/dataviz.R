@@ -2,11 +2,13 @@ library(tidyverse)
 library(lubridate)
 library(magrittr)
 
-data0 <- read_csv("../Data/train.csv", n_max = 1000)
+data0 <- read_csv("../Data/train.csv", n_max = 100000)
 
 # First visualisation on fare price only
 
-data1 <- subset(data0, select = c(key, fare_amount))
+data1 <- subset(data0, select = c(key, fare_amount)) %>%
+         filter(fare_amount > .5) %>%
+         mutate(log_fare = log(fare_amount))
 
 data_summary <- function(x) {
   m <- mean(x)
@@ -16,11 +18,11 @@ data_summary <- function(x) {
 }
 
 fare_histo_plot <- function(data) {
-  g <- ggplot(data, aes(x = fare_amount)) +
+  g <- ggplot(data, aes(x = log_fare)) +
       geom_histogram(aes(y=..density..), colour = "black", fill = "aliceblue") +
       geom_density(alpha = .2, fill = "red") +
       ggtitle(label = "Taxi fare price histogramm and density estimation") +
-      xlab("taxi fare price (in $)")
+      xlab("taxi fare price (in log($))")
   return(g)
 }
 
@@ -29,26 +31,16 @@ g1 <- fare_histo_plot(data1)
 # One can notice that the distribution looks like a Poisson (mean = variance)
 
 data2 <- mutate(data1, week_day = wday(data1$key, label = TRUE)) %>%
-           select(fare_amount, week_day) %>%
-           group_by(week_day) %>%
-           summarize(fare_amount_mean = mean(fare_amount), fare_amount_sd = sd(fare_amount))
+             select(fare_amount, week_day) %>%
+             mutate(log_fare = log(fare_amount))
 
-data2_bis <- mutate(data1, week_day = wday(data1$key, label = TRUE)) %>%
-             select(fare_amount, week_day)
-
-g2 <- ggplot(data2, aes(x = week_day, y = fare_amount_mean)) +
-      geom_violin(colour = "black", fill = "antiquewhite") +
-      xlab("day of the week") + 
-      ylab("mean taxi fare price (in $)") +
-      ggtitle("Average taxi fare price per day") 
-
-g2_bis <- ggplot(data2_bis, aes(x = week_day, y = fare_amount)) +
+g2 <- ggplot(data2, aes(x = week_day, y = log_fare)) +
           geom_violin(colour = "black", fill = "cadetblue1") +
           xlab("day of the week") + 
-          ylab("taxi fare price (in $)") +
-          stat_summary(fun.data=data_summary)
+          ylab("taxi fare price (in log($))") +
+          stat_summary(fun.data=data_summary, colour = "red")
 
-g3 <- fare_histo_plot(data2_bis) + facet_grid(. ~ week_day)
+g3 <- fare_histo_plot(data2) + facet_grid(. ~ week_day)
 
 
 
