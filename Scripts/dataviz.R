@@ -38,9 +38,31 @@ g2 <- ggplot(data2, aes(x = week_day, y = log_fare)) +
           geom_violin(colour = "black", fill = "cadetblue1") +
           xlab("day of the week") + 
           ylab("taxi fare price (in log($))") +
-          stat_summary(fun.data=data_summary, colour = "red")
+          stat_summary(fun.data = data_summary, colour = "red")
 
 g3 <- fare_histo_plot(data2) + facet_grid(. ~ week_day)
 
+# Spatial Data
+
+bounding_box <- c(-74.5, -72.8, 40.5, 41.8)
+
+data3 <- data0 %>% 
+         filter(pickup_longitude > bounding_box[1], pickup_longitude < bounding_box[2]) %>%
+         filter(dropoff_longitude > bounding_box[1], dropoff_longitude < bounding_box[2]) %>%
+         filter(pickup_latitude > bounding_box[3], pickup_latitude < bounding_box[4]) %>%
+         filter(dropoff_latitude > bounding_box[3], dropoff_latitude < bounding_box[4]) %>%
+         mutate(log_trip_distance = log(sqrt((pickup_longitude - dropoff_longitude)^2 + (pickup_latitude - dropoff_latitude)^2)), 
+                trip_distance = sqrt((pickup_longitude - dropoff_longitude)^2 + (pickup_latitude - dropoff_latitude)^2))
+
+g5 <- ggplot(data3, aes(x = trip_distance)) +
+  geom_histogram(aes(y=..density..), colour = "black", fill = "aliceblue") +
+  geom_density(alpha = .2, fill = "red") +
+  ggtitle(label = "Density estimation for the trip distance") 
+
+g6 <- ggplot(data3 %>% filter(trip_distance < .9), aes(x = trip_distance, y = fare_amount)) +
+      geom_point(colour = "black") +
+      geom_smooth()
+      
 
 
+  
