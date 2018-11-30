@@ -10,28 +10,49 @@ library(padr)
 library(plyr)
 library(dplyr)
 
-# Getting the data
-MyData <- read.csv(
-  "Data/train.csv",
-  header=TRUE,
-  colClasses=c("key"="character","fare_amount"="numeric",
-               "pickup_datetime"="POSIXct",
-               "dropoff_longitude"="numeric","pickup_longitude"="numeric",
-               "dropoff_latitude"="numeric","pickup_latitude"="numeric",
-               "passenger_count"="integer"),
-  #nrows=100000
-  )
+####### Data handling #######
+
+# creating the file
+library(data.table)
+Data <- fread(
+  file="Data/train.csv",
+)
 
 # Resampling
-Data <- MyData[,c(1,2)]
+Data <- Data[,c("key","fare_amount")]
 Data$key=as.POSIXct(Data$key, format="%Y-%m-%d %H:%M:%S")  # char to datetime
+head(Data)
 
-Data <- Data %>% thicken("hour") %>% group_by(key_hour) %>% summarise(median(fare_amount))  # resampling
-Data <- plyr::rename(Data,c("key_hour"="key","median(fare_amount)"="fare_amount"))
+train <- Data %>% thicken("hour") %>% group_by(key_hour) %>% summarise(median(fare_amount))  # resampling
+train <- plyr::rename(train,c("key_hour"="key","median(fare_amount)"="fare_amount"))
+
+head(train)
+tail(train)
+
+limit <- as.POSIXct("2015-01-01 00:00:00", format="%Y-%m-%d %H:%M:%S")
+
+h <- nrow(train[train$key>=limit,])
+train <- train[train$key<limit,]
+test <- Data[Data$key>=limit,]
 
 # Fare plot
 par(mfrow=c(1,1))
-plot(Data$key, Data$fare_amount, ylab = "Fare", xlab = "Date", type='l', col = 634, fg =139, bg = 139)
+plot(train$key, train$fare_amount, ylab = "Fare", xlab = "Date", type='l', col = 634, fg =139, bg = 139)
 
 # Autocorrelation plot
-acf(Data$fare_amount, lag.max = 200,main="Autocorrelation")
+acf(train$fare_amount, lag.max = 500, main="Autocorrelation")
+
+
+####### Data handling #######
+
+# Models
+library(forecast)
+
+fare_ts <- ts(train[,2], freq=24, start=0)
+
+# tbats
+faretbats <- tbats(fare_ts, num.cores = NULL)
+fc2 <- forecast(faretbats, h=h)
+plot(fc2)
+
+
