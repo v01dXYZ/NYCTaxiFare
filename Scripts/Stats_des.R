@@ -31,11 +31,18 @@ nrow(Data)
 Data$pickup_datetime=as.POSIXct(Data$pickup_datetime, format="%Y-%m-%d %H:%M:%S", tz = 'GMT')
 
 # Remove some incoherent data
+# a look in the test set shows that the following values are the accurate boundaries
+offset <- 0.1 # otherwise some test data are on the edge of the domain studied
+min_lng <- -74.263242 - offset
+min_lat <- 40.573143 - offset
+max_lng <- -72.986532 + offset
+max_lat <- 41.709555 + offset
+
 Data <- Data[!(Data$fare_amount<0 |
-               Data$pickup_longitude<(-74.259090) | Data$pickup_longitude>(-73.700272) |
-               Data$pickup_latitude<40.477399  | Data$pickup_latitude>40.917577 |
-               Data$dropoff_longitude<(-74.259090) | Data$dropoff_longitude>(-73.700272) |
-               Data$dropoff_latitude<40.477399  | Data$dropoff_latitude>40.917577 |
+               Data$pickup_longitude<min_lng | Data$pickup_longitude>max_lng |
+               Data$pickup_latitude<min_lat  | Data$pickup_latitude>max_lat|
+               Data$dropoff_longitude<min_lng | Data$dropoff_longitude>max_lng |
+               Data$dropoff_latitude<min_lat  | Data$dropoff_latitude>max_lat |
                Data$passenger_count>10),]
 nrow(Data)
 
@@ -71,7 +78,11 @@ p
 # fare histograms
 p <- plot_ly(x = ~Data$fare_amount, type = "histogram", nbinsx=150) %>%
   layout(title='Fare histogram', xaxis=list(title='Fare'))
-p
+p  # very skewed
+
+p <- plot_ly(x = ~log(Data$fare_amount), type = "histogram", nbinsx=30) %>%
+  layout(title='Fare histogram', xaxis=list(title='Fare'))
+p #log
 
 # boxplots
 p <- plot_ly(y = Data$passenger_count, type = "box", name = '') %>%
@@ -82,7 +93,33 @@ p <- plot_ly(y = Data$fare_amount, type = "box", name = '') %>%
   layout(title='Fare boxplot', yaxis=list(title='Fare'))
 p
 
+p <- plot_ly(y = log(Data$fare_amount), type = "box", name = '') %>%
+  layout(title='Fare boxplot', yaxis=list(title='Fare'))
+p #log
+
+###################################### Heatmap #######################################
+
+library(tidyr)
+agg <- Data[,c('fare_amount', 'pickup_longitude', 'dropoff_longitude', 'dropoff_latitude', 'pickup_latitude')]
+cols <- names(agg)[2:5]
+agg[,(cols) := round(.SD,3), .SDcols=cols]
+
+agg1 <- aggregate(fare_amount ~ pickup_latitude+pickup_longitude, data=agg, median, na.rm=TRUE)
+agg1_matrix <- xtabs(fare_amount ~ pickup_latitude+pickup_longitude, data=agg1)
+agg1_matrix[agg1_matrix==0]<-NA
+
+p <- plot_ly(z = agg1_matrix, colors = colorRamp(c("green", "red")), type = "heatmap")
+p
+
+agg2 <- aggregate(fare_amount ~ dropoff_latitude+dropoff_longitude, data=agg, median, na.rm=TRUE)
+agg2_matrix <- xtabs(fare_amount ~ dropoff_latitude+dropoff_longitude, data=agg2)
+agg2_matrix[agg2_matrix==0]<-NA
+
+p <- plot_ly(z = agg2_matrix, colors = colorRamp(c("red", "green")), type = "heatmap")
+p
 ###################################### Geoplots ######################################
+
+
 # pickup data
 p <- Data[1:30000] %>%
   plot_mapbox(lat = ~pickup_latitude, lon = ~pickup_longitude,
@@ -217,3 +254,4 @@ p <- plot_mapbox(mode = 'scattermapbox') %>%
                   pad = 0),
     showlegend=FALSE)
 p
+
