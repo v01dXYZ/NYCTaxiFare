@@ -1,0 +1,13 @@
+CREATE TABLE nycfare (
+		id Int64,
+		fare Float64,
+		ilong Float64,
+		ilat Float64,
+		olong Float64,
+		olat Float64,
+		pcount Int32,
+		date DateTime,
+		izone String, 
+		ozone String) 
+
+ENGINE = MergeTree() PARTITION BY toMonday(date) ORDER BY (id, date) SETTINGS index_granularity=8192
