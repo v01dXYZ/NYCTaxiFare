@@ -4,7 +4,9 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                echo 'Building..'
+                dir('viz') {
+                     sh 'Rscript exec.R'
+                }
             }
         }
         stage('Test') {
