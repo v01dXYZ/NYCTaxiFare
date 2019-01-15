@@ -1,0 +1,14 @@
+site_name: NYCTaxiFare
+
+theme:
+    name: material
+    language: fr
+    search:
+        language: fr
+
+markdown_extensions:
+  - admonition
+  - codehilite:
+      guess_lang: false
+  - toc:
+      permalink: true
