@@ -1,5 +1,4 @@
 library(parallel)
-library(digest)
 library(stringi)
 
 source('config.R')
