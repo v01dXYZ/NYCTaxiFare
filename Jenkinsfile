@@ -1,4 +1,3 @@
-# vi:syntax=groovy
 pipeline{
 	agent any
 
